@@ -1,0 +1,30 @@
+#!/usr/bin/env fish
+# vim: set filetype=fish :
+
+require-cmd openssl sed; or exit
+
+if not set -q argv[1]
+	echo 'Error: no secret given'
+	exit 1
+end
+
+set secret "$argv[1]"
+
+function base64url
+    command cat $argv[1] | base64 --wrap=0 | tr '+/' '-_' | sed -E 's/=+$//'
+end
+
+set tmpfile (mktemp)
+trap 'command rm $tmpfile' EXIT
+
+echo -n '{"alg":"HS512","typ":"JWT"}' > $tmpfile
+set header (base64url $tmpfile)
+
+echo -n '{"iat":"'(date -u '+%s' | tr -d '\n')'"}' > $tmpfile
+set payload (base64url $tmpfile)
+
+echo -n "$header.$payload" | openssl dgst -sha512 -hmac $secret -binary > $tmpfile
+set digest (base64url $tmpfile)
+
+set token "$header.$payload.$digest"
+echo $token
