@@ -1,0 +1,43 @@
+#!/usr/bin/env fish
+# vim: set filetype=fish :
+
+argparse 'h/help' -- $argv
+or exit
+
+if set --query _flag_help
+	set scriptname	(basename (status filename))
+	echo "Usage: $scriptname"
+
+	exit
+end
+
+set token_file		$VAULT/gitlab-api-token
+set url_file		$VAULT/gitlab-repo-url
+
+require-cmd cat mktemp rm curl jq git fzf xargs; or exit
+require-files $token_file $url_file; or exit
+
+set gitlab_api		'https://gitlab.com/api/v4/namespaces'
+set gitlab_url		(cat $url_file)
+set token			(cat $token_file)
+set tmp				(mktemp)
+
+trap 'command rm -f $tmp' EXIT
+
+# Select a namespace
+curl --silent --header "PRIVATE-TOKEN: $token" $gitlab_api > $tmp
+set namespace (jq -r '.[] | .full_path' < $tmp | fzf)
+
+# Repository name
+read --prompt-str='Repository name: ' --command=(git rev-parse --show-toplevel | xargs basename) project
+
+# Branch to push
+set branch (git branch --format='%(refname:short)' | fzf --prompt='Branch to set upstream: ' --select-1)
+
+# Create project
+git push --set-upstream $gitlab_url$namespace/$project.git $branch
+or exit
+
+# Add remote
+git remote add gitlab $gitlab_url$namespace/$project.git
+or exit
