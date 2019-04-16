@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+
+for book in *.mobi
+do
+	title=$(file $book | cut -d'"' -f2 | tr '/' '-')
+
+	mkdir -p "$title"
+	mv "$(basename $book '.mobi')".* "$title"
+done
