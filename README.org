@@ -3,3 +3,4 @@
 - ~gen-jwt~ :: Generate a JWT token
 - ~gitlab-create-project~ :: Create a new project in GitLab
 - ~humblebundle-to-directory~ :: Create a directory for each HumbleBundle's books
+- ~repos~ :: Perform command on multiples repositories

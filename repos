@@ -1,0 +1,58 @@
+#!/usr/bin/env fish
+# vim: set filetype=fish :
+
+require-cmd git
+
+set repos_path		(echo $REPOS_PATH | string replace '~' $HOME)
+set scriptname		(basename (status filename))
+set usage			"\
+usage: env REPOS_PATH='~/dev/project1 /tmp/project2' $scriptname <command>
+
+The commands are:
+	status
+	fetch
+	pull
+	shell"
+
+function usage
+	echo $usage
+end
+
+function print-hr
+	set_color -b magenta magenta
+	echo -n '################################################################################'
+	set_color normal
+	echo
+end
+
+if not set -q argv[1]
+	usage
+	exit 0
+end
+
+for repo in $repos_path
+	set --export GIT_WORK_TREE	"$repo"
+	set --export GIT_DIR		"$repo/.git"
+
+	print-hr
+	print-message "Repository at: "(emphasize-arg $repo)
+
+	for action in $argv
+		switch $action
+			case 'status'
+				command git status --short --branch --show-stash
+			case 'fetch'
+				command git fetch -v --tags --all
+			case 'pull'
+				command git pull
+			case 'shell'
+				fish --init-command="\
+					cd $repo;
+					function fish_prompt; echo 'repo> '; end"
+			case '*'
+				print-error "$action: unknown action"
+				usage
+				exit 1
+		end
+	end
+end
